@@ -29,7 +29,7 @@
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn text @click="dialog = false">إغلاق</v-btn>
+        <v-btn text @click="closeForm">إغلاق</v-btn>
         <v-btn color="success" @click="createCompany">إضافة شركة</v-btn>
       </v-card-actions>
     </v-card>
@@ -37,10 +37,13 @@
 </template>
 
 <script lang="ts" setup>
+
 import { ref } from 'vue';
 import apiClient from "../../../service/api";
-
-// Define the types of the fields
+const emit = defineEmits(['close']);
+const closeForm = () => {
+  emit('close');
+};
 const dialog = ref<boolean>(true);
 
 const companyName = ref<string>('');
@@ -48,7 +51,7 @@ const companyAddress = ref<string>('');
 const country = ref<string>('');
 const valid = ref<boolean>(false);
 
-// Define the type of the data to be sent
+
 interface CompanyData {
   companyName: string;
   companyAddress: string;
