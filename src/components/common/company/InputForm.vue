@@ -45,7 +45,7 @@ import { ref, watch } from "vue";
 import apiClient from "../../../service/api";
 import Swal from "sweetalert2";
 const emit = defineEmits(["close", "save"]);
-const props = defineProps<{ company: { companyGuid?: string; companyName?: string; fullAddress?: string } | null }>();
+const props = defineProps<{ company: { companyGuid?: string; companyName?: string; companyAddress?:string ; country?:string } | null }>();
 
 const dialog = ref<boolean>(true);
 const valid = ref<boolean>(false);
@@ -54,15 +54,16 @@ const companyName = ref<string>("");
 const companyAddress = ref<string>("");
 const country = ref<string>("");
 
+const isSaving = ref<boolean>(false);
+
 
 watch(
   () => props.company,
   (newCompany) => {
     if (newCompany) {
       companyName.value = newCompany.companyName || "";
-      const addressParts = newCompany.fullAddress?.split(" ");
-      country.value = addressParts?.pop() || "";
-      companyAddress.value = addressParts?.join(" ") || "";
+      companyAddress.value = newCompany.companyAddress || "";
+      country.value = newCompany.country || "";
     } else {
       companyName.value = "";
       companyAddress.value = "";
@@ -76,8 +77,11 @@ const closeForm = () => {
   emit("close");
 };
 
+
+
 const saveCompany = async (): Promise<void> => {
-  if (!valid.value) return;
+if(isSaving.value) return;
+isSaving.value = true;
 
   try {
     const payload = {
@@ -86,7 +90,7 @@ const saveCompany = async (): Promise<void> => {
       country: country.value,
     };
 
-    console.log("Sending payload:", payload);
+
 
     if (props.company?.companyGuid) {
 
@@ -126,6 +130,7 @@ const saveCompany = async (): Promise<void> => {
   } catch (ex) {
 
     console.error("حدث خطأ أثناء الحفظ:", ex);
+
 
 
     Swal.fire({
