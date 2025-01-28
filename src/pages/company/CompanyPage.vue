@@ -26,10 +26,10 @@
       :loading="loading"
     >
       <template v-slot:[`item.actions`]="{ item }">
-        <v-btn color="blue">
+        <v-btn color="blue" @click="editCompany(item)">
           <v-icon>mdi-pencil</v-icon>
         </v-btn>
-        <v-btn color="red">
+        <v-btn color="red" @click="deleteCompany(item.companyGuid)">
           <v-icon>mdi-delete</v-icon>
         </v-btn>
       </template>
@@ -61,7 +61,9 @@
         >
           <td>
             <div class="d-flex">
-              <v-btn color="blue"><v-icon>mdi-pencil</v-icon></v-btn>
+              <v-btn color="blue" @click="editCompany(company)">
+                <v-icon>mdi-pencil</v-icon>
+              </v-btn>
               <v-spacer></v-spacer>
               <v-btn color="red" @click="deleteCompany(company.companyGuid)">
                 <v-icon>mdi-delete</v-icon>
@@ -76,18 +78,20 @@
     </v-data-table>
   </div>
 
-  <v-dialog v-model="inputForm" >
-    <InputForm @close="inputForm = false" />
+  <v-dialog v-model="inputForm">
+    <InputForm
+      :company="selectedCompany"
+      @close="inputForm = false"
+      @save="handleSave"
+    />
   </v-dialog>
-
 </template>
 
 <script lang="ts">
 import { defineComponent, onMounted, ref, Ref } from "vue";
-import  Header  from "../../components/common/Header.vue";
-import  InputForm  from "../../components/common/company/InputForm.vue";
+import Header from "../../components/common/Header.vue";
+import InputForm from "../../components/common/company/InputForm.vue";
 import apiClient from "../../service/api";
-import "toastify-js/src/toastify.css";
 import Swal from "sweetalert2";
 
 interface Company {
@@ -109,8 +113,15 @@ export default defineComponent({
     const companies: Ref<Company[]> = ref([]);
     const loading: Ref<boolean> = ref(false);
     const inputForm: Ref<boolean> = ref(false);
+    const selectedCompany: Ref<Company | null> = ref(null);
 
     const openDialog = (): void => {
+      selectedCompany.value = null;
+      inputForm.value = true;
+    };
+
+    const editCompany = (company: Company): void => {
+      selectedCompany.value = company;
       inputForm.value = true;
     };
 
@@ -123,7 +134,6 @@ export default defineComponent({
           },
         });
         companies.value = response.data;
-        fetchCompanies();
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -194,6 +204,50 @@ export default defineComponent({
       }
     };
 
+    const handleSave = async (companyData: Company): Promise<void> => {
+  try {
+    const payload = {
+  companyName: companyData.companyName,
+  companyAddress: companyData.companyAddress,
+  country: companyData.country,
+};
+
+    if (companyData.companyGuid) {
+
+      await apiClient.put(`/api/companies/${companyData.companyGuid}`, payload);
+
+
+      companies.value = companies.value.map((company) =>
+        company.companyGuid === companyData.companyGuid
+          ? { ...company, ...payload }
+          : company
+      );
+    } else {
+
+      const response = await apiClient.post("/api/companies", payload);
+      companies.value.push(response.data);
+    }
+
+    Swal.fire({
+      title: "نجاح",
+      text: "تم حفظ البيانات بنجاح!",
+      icon: "success",
+      timer: 2000,
+    });
+
+    inputForm.value = false;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message || "حدث خطأ أثناء حفظ البيانات.";
+    Swal.fire({
+      title: "خطأ",
+      text: errorMessage,
+      icon: "error",
+    });
+  }
+};
+
+
     onMounted(() => {
       fetchCompanies();
     });
@@ -203,9 +257,12 @@ export default defineComponent({
       companies,
       loading,
       inputForm,
+      selectedCompany,
       openDialog,
+      editCompany,
       splitAddress,
       deleteCompany,
+      handleSave,
     };
   },
 });

@@ -2,7 +2,9 @@
   <v-dialog v-model="dialog" max-width="500px">
     <v-card>
       <v-card-title>
-        <span class="headline">إضافة شركة جديدة</span>
+        <span class="headline">
+          {{ company?.companyGuid ? "تحديث الشركة" : "إضافة شركة جديدة" }}
+        </span>
       </v-card-title>
       <v-card-text>
         <v-form v-model="valid" ref="form">
@@ -22,7 +24,7 @@
 
           <v-text-field
             v-model="country"
-            label="البلد"
+            label="الدوله"
             :rules="[v => !!v || 'هذا الحقل مطلوب']"
             outlined
           ></v-text-field>
@@ -30,50 +32,114 @@
       </v-card-text>
       <v-card-actions>
         <v-btn text @click="closeForm">إغلاق</v-btn>
-        <v-btn color="success" @click="createCompany">إضافة شركة</v-btn>
+        <v-btn color="success" :disabled="!valid" @click="saveCompany">
+          {{ company?.companyGuid ? "تحديث" : "إضافة" }}
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script lang="ts" setup>
-
-import { ref } from 'vue';
+import { ref, watch } from "vue";
 import apiClient from "../../../service/api";
-const emit = defineEmits(['close']);
-const closeForm = () => {
-  emit('close');
-};
-const dialog = ref<boolean>(true);
+import Swal from "sweetalert2";
+const emit = defineEmits(["close", "save"]);
+const props = defineProps<{ company: { companyGuid?: string; companyName?: string; fullAddress?: string } | null }>();
 
-const companyName = ref<string>('');
-const companyAddress = ref<string>('');
-const country = ref<string>('');
+const dialog = ref<boolean>(true);
 const valid = ref<boolean>(false);
 
+const companyName = ref<string>("");
+const companyAddress = ref<string>("");
+const country = ref<string>("");
 
-interface CompanyData {
-  companyName: string;
-  companyAddress: string;
-  country: string;
-}
 
-const createCompany = async (): Promise<void> => {
-  if (valid.value) {
-    const companyData: CompanyData = {
+watch(
+  () => props.company,
+  (newCompany) => {
+    if (newCompany) {
+      companyName.value = newCompany.companyName || "";
+      const addressParts = newCompany.fullAddress?.split(" ");
+      country.value = addressParts?.pop() || "";
+      companyAddress.value = addressParts?.join(" ") || "";
+    } else {
+      companyName.value = "";
+      companyAddress.value = "";
+      country.value = "";
+    }
+  },
+  { immediate: true }
+);
+
+const closeForm = () => {
+  emit("close");
+};
+
+const saveCompany = async (): Promise<void> => {
+  if (!valid.value) return;
+
+  try {
+    const payload = {
       companyName: companyName.value,
       companyAddress: companyAddress.value,
       country: country.value,
     };
 
-    try {
-      const response = await apiClient.post(`/api/companies/99/employees`, companyData);
-      console.log('تم إضافة الشركة بنجاح', response.data);
-    } catch (error) {
-      console.error('حدث خطأ عند إضافة الشركة:', error);
-    } finally {
-      dialog.value = false;
+    console.log("Sending payload:", payload);
+
+    if (props.company?.companyGuid) {
+
+      await apiClient.put(`/api/companies/${props.company.companyGuid}`, payload);
+
+
+      Swal.fire({
+        title: "تم التحديث!",
+        text: "تم تحديث بيانات الشركة بنجاح.",
+        icon: "success",
+        background: "#121212",
+        color: "#ffffff",
+        customClass: {
+          popup: "popup-dark",
+        },
+      });
+    } else {
+
+      await apiClient.post("/api/companies", payload);
+
+
+      Swal.fire({
+        title: "تم الإضافة!",
+        text: "تم إضافة الشركة بنجاح.",
+        icon: "success",
+        background: "#121212",
+        color: "#ffffff",
+        customClass: {
+          popup: "popup-dark",
+        },
+      });
     }
+
+    emit("save", { ...payload, companyGuid: props.company?.companyGuid || undefined });
+    dialog.value = false;
+
+  } catch (ex) {
+
+    console.error("حدث خطأ أثناء الحفظ:", ex);
+
+
+    Swal.fire({
+      title: "خطأ",
+      text: "حدث خطأ أثناء حفظ البيانات. الرجاء المحاولة لاحقاً.",
+      icon: "error",
+      background: "#121212",
+      color: "#ffffff",
+      customClass: {
+        popup: "popup-dark",
+      },
+    });
   }
 };
+
+
 </script>
