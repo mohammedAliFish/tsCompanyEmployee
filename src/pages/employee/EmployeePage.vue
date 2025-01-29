@@ -7,22 +7,18 @@
           <template v-slot:prepend>
             <v-icon color="success"></v-icon>
           </template>
-          اضافة
+          إضافة موظف
         </v-btn>
       </div>
-      <h2>اداره الشركات</h2>
+      <h2>إدارة الموظفين</h2>
     </div>
 
-    <v-data-table
-      :items="companies"
-      item-value="companyGuid"
-      :loading="loading"
-    >
+    <v-data-table :items="employees" item-value="employeeGuid" :loading="loading">
       <template v-slot:[`item.actions`]="{ item }">
-        <v-btn color="blue">
+        <v-btn color="blue" @click="editEmployee(item)">
           <v-icon>mdi-pencil</v-icon>
         </v-btn>
-        <v-btn color="red">
+        <v-btn color="red" @click="deleteEmployee(item.employeeGuid)">
           <v-icon>mdi-delete</v-icon>
         </v-btn>
       </template>
@@ -30,7 +26,7 @@
       <template v-slot:top>
         <v-text-field
           v-model="searchQuery"
-          label="ابحث عن الشركات"
+          label="ابحث عن الموظفين"
           class="mx-4"
           clearable
           dir="rtl"
@@ -40,57 +36,60 @@
 
       <thead>
         <tr>
-          <th class="text-right">الاجراءات</th>
-          <th class="text-right">الدوله</th>
-          <th class="text-right">العنوان</th>
-          <th class="text-right">اسم الشركه</th>
+          <th class="text-right">الإجراءات</th>
+          <th class="text-right">الشركه</th>
+          <th class="text-right">المنصب</th>
+          <th class="text-right">العمر</th>
+          <th class="text-right">اسم الموظف</th>
         </tr>
       </thead>
       <tbody>
-        <tr class="text-right" v-for="company in companies" :key="company.companyGuid">
+        <tr class="text-right" v-for="employee in employees" :key="employee.employeeGuid">
           <td>
             <div class="d-flex">
-              <v-btn color="blue"><v-icon>mdi-pencil</v-icon></v-btn>
+              <v-btn color="blue" @click="editEmployee(employee)"><v-icon>mdi-pencil</v-icon></v-btn>
               <v-spacer></v-spacer>
-              <v-btn color="red"><v-icon>mdi-delete</v-icon></v-btn>
+              <v-btn color="red" @click="deleteEmployee(employee.employeeGuid)"><v-icon>mdi-delete</v-icon></v-btn>
             </div>
           </td>
-          <td>{{ splitAddress(company.fullAddress).country }}</td>
-          <td>{{ splitAddress(company.fullAddress).address }}</td>
-          <td>{{ company.companyName }}</td>
+          <td>{{ employee.companyName }}</td>
+          <td>{{ employee.employeePosition }}</td>
+          <td>{{ employee.employeeAge }}</td>
+          <td>{{ employee.employeeName }}</td>
         </tr>
       </tbody>
     </v-data-table>
   </div>
 
   <v-dialog v-model="inputForm">
-    <InputForm @close="inputForm=false" />
+    <InputForm @close="inputForm = false" @save="fetchEmployees" />
   </v-dialog>
 </template>
 
 <script lang="ts">
 import { defineComponent, onMounted, ref, Ref } from "vue";
 import Header from "../../components/common/Header.vue";
-import InputForm from "../../components/common/company/InputForm.vue";
+import InputForm from "../../components/common/employee/InputForm.vue";
 import apiClient from "@/service/api";
+import Swal from "sweetalert2";
 
-interface Company {
-  companyGuid: string;
+interface Employee {
+  employeeGuid: string;
+  employeeName: string;
+  employeeAge: number;
+  employeePosition: string;
   companyName: string;
-  fullAddress: string;
 }
 
 export default defineComponent({
-  name: "CompaniesPage",
-
+  name: "EmployeesPage",
   components: {
     Header,
     InputForm,
   },
-
   setup() {
     const searchQuery: Ref<string> = ref("");
-    const companies: Ref<Company[]> = ref([]);
+    const employees: Ref<Employee[]> = ref([]);
     const loading: Ref<boolean> = ref(false);
     const inputForm: Ref<boolean> = ref(false);
 
@@ -98,48 +97,52 @@ export default defineComponent({
       inputForm.value = true;
     };
 
-    const fetchCompanies = async (): Promise<void> => {
+    const fetchEmployees = async (): Promise<void> => {
       loading.value = true;
       try {
-        const response = await apiClient.get("/api/companies", {
-          params: {
-            search: searchQuery.value,
-          },
-        });
-        companies.value = response.data;
+        const response = await apiClient.get("/api/companies/y/employees/all-employees-with-companies");
+        employees.value = response.data;
+        console.log(response.data)
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("فشل في جلب البيانات:", error);
       } finally {
         loading.value = false;
       }
     };
 
-    const splitAddress = (fullAddress: string): { address: string; country: string } => {
-      const parts = fullAddress.split(" ");
-      const lastPart = parts.pop()?.trim() || "";
-      const address = parts.join(", ").trim();
-      return {
-        address,
-        country: lastPart,
-      };
+    const deleteEmployee = async (id: string): Promise<void> => {
+      try {
+        await apiClient.delete(`/api/companies/{companyId}/employees/${id}`);
+        Swal.fire("تم الحذف!", "تم حذف الموظف بنجاح.", "success");
+        fetchEmployees();
+      } catch (error) {
+        console.error("فشل في حذف الموظف:", error);
+      }
+    };
+
+    const editEmployee = (employee: Employee): void => {
+      console.log("تحرير الموظف", employee);
+      inputForm.value = true;
     };
 
     onMounted(() => {
-      fetchCompanies();
+      fetchEmployees();
     });
 
     return {
       searchQuery,
-      companies,
+      employees,
       loading,
       inputForm,
       openDialog,
-      splitAddress,
+      deleteEmployee,
+      editEmployee,
+      fetchEmployees,
     };
   },
 });
 </script>
 
 <style scoped>
-/* أضف هنا الأنماط إذا لزم الأمر */
+
 </style>
