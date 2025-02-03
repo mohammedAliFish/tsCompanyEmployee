@@ -47,6 +47,17 @@
         </tr>
       </tbody>
     </v-data-table>
+
+
+    <div class="pagination-controls" v-if="paginationData.TotalPages > 1">
+      <v-btn :disabled="!paginationData.HasPrevious" @click="goToPage(paginationData.CurrentPage - 1)">
+        <v-icon>mdi-chevron-left</v-icon>
+      </v-btn>
+      <span>{{ paginationData.CurrentPage }} / {{ paginationData.TotalPages }}</span>
+      <v-btn :disabled="!paginationData.HasNext" @click="goToPage(paginationData.CurrentPage + 1)">
+        <v-icon>mdi-chevron-right</v-icon>
+      </v-btn>
+    </div>
   </div>
 
   <v-dialog v-model="inputForm">
@@ -69,6 +80,15 @@ interface Company {
   country: string;
 }
 
+interface PaginationData {
+  CurrentPage: number;
+  TotalPages: number;
+  PageSize: number;
+  TotalCount: number;
+  HasPrevious: boolean;
+  HasNext: boolean;
+}
+
 export default defineComponent({
   name: "CompaniesPage",
   components: { Header, InputForm },
@@ -76,15 +96,20 @@ export default defineComponent({
   setup() {
     const searchQuery = ref("");
     const companies = ref<Company[]>([]);
+    const paginationData = ref<PaginationData>({} as PaginationData);
     const loading = ref(false);
     const inputForm = ref(false);
     const selectedCompany = ref<Company | null>(null);
 
-    const fetchCompanies = async () => {
+    const fetchCompanies = async (pageNumber: number = 1) => {
       loading.value = true;
       try {
-        const response = await apiClient.get("/api/companies");
+        const response = await apiClient.get("/api/companies", {
+          params: { pageNumber, pageSize: paginationData.value.PageSize || 5 },
+        });
+
         companies.value = response.data;
+        paginationData.value = response.headers['x-pagination'] ? JSON.parse(response.headers['x-pagination']) : {} as PaginationData;
       } catch (error) {
         Swal.fire({ title: "خطأ", text: "حدث خطأ أثناء جلب البيانات.", icon: "error" });
       } finally {
@@ -106,7 +131,7 @@ export default defineComponent({
         try {
           await apiClient.delete(`/api/companies/${companyId}`);
           Swal.fire({ title: "تم الحذف!", text: "تم حذف الشركة بنجاح.", icon: "success" });
-          fetchCompanies();
+          fetchCompanies(paginationData.value.CurrentPage); // Re-fetch companies
         } catch {
           Swal.fire({ title: "خطأ", text: "حدث خطأ أثناء حذف الشركة.", icon: "error" });
         }
@@ -123,7 +148,7 @@ export default defineComponent({
         }
         Swal.fire({ title: "نجاح", text: "تم حفظ البيانات بنجاح!", icon: "success", timer: 2000 });
         inputForm.value = false;
-        fetchCompanies();
+        fetchCompanies(paginationData.value.CurrentPage);
       } catch {
         Swal.fire({ title: "خطأ", text: "حدث خطأ أثناء حفظ البيانات.", icon: "error" });
       }
@@ -133,15 +158,29 @@ export default defineComponent({
       companies.value.filter(company => company.companyName.includes(searchQuery.value))
     );
 
-    const onSearch = debounce(fetchCompanies, 500);
+    const onSearch = debounce(() => fetchCompanies(), 500);
 
-    onMounted(fetchCompanies);
+    const goToPage = (pageNumber: number) => {
+      if (pageNumber > 0 && pageNumber <= paginationData.value.TotalPages) {
+        fetchCompanies(pageNumber);
+      }
+    };
 
-    return { searchQuery, filteredCompanies, loading, inputForm, selectedCompany, openDialog: () => { selectedCompany.value = null; inputForm.value = true; }, editCompany: (company: Company) => { selectedCompany.value = company; inputForm.value = true; }, deleteCompany, handleSave, onSearch };
+    onMounted(() => fetchCompanies());
+
+    return { searchQuery, filteredCompanies, loading, inputForm, selectedCompany, openDialog: () =>
+      { selectedCompany.value = null; inputForm.value = true; }, editCompany: (company: Company) =>
+      { selectedCompany.value = company; inputForm.value = true; },
+      deleteCompany, handleSave, onSearch, paginationData, goToPage };
   }
 });
 </script>
 
 <style scoped>
-
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
 </style>

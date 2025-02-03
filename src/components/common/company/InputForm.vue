@@ -90,7 +90,7 @@ isSaving.value = true;
       country: country.value,
     };
 
-
+    emit("save", { ...payload, companyGuid: props.company?.companyGuid || undefined });
 
     if (props.company?.companyGuid) {
 
@@ -124,7 +124,7 @@ isSaving.value = true;
       });
     }
 
-    emit("save", { ...payload, companyGuid: props.company?.companyGuid || undefined });
+
     dialog.value = false;
 
   } catch (ex) {
