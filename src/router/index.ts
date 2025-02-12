@@ -9,10 +9,10 @@ import Login from "../pages/Login.vue"
 
 
 const routes = [
-  { path: "/", name: "Home", component: Home },
+  { path: "/", name: "Login", component: Login },
   { path: "/employees", name: "Employees", component: EmployeePage },
   { path: "/companies", name: "Companies", component: CompanyPage },
-  { path: "/login"    , name: "Login"    , component: Login}
+  { path: "/home"    , name: "Home"    , component: Home}
 ];
 
 const router = createRouter({
