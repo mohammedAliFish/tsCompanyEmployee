@@ -1,49 +1,46 @@
 <template>
   <v-toolbar>
-    <v-btn
-      :prepend-icon="
-        theme === 'light' ? 'mdi-weather-sunny' : 'mdi-weather-night'
-      "
-      slim
-      @click="onClick"
-    ></v-btn>
+
+    <v-btn icon @click="toggleTheme">
+      <v-icon>{{ isDark ? 'mdi-weather-night' : 'mdi-weather-sunny' }}</v-icon>
+    </v-btn>
 
     <v-spacer />
+
+
     <v-toolbar-items>
-      <v-btn @click="toEmployees">الموظفين</v-btn>
-      <v-btn @click="toCompanies">الشركات</v-btn>
-      <v-btn @click="toHome">الصفحه الرئيسيه</v-btn>
+      <v-btn v-for="(item, index) in navItems" :key="index" @click="navigateTo(item.path)">
+        {{ item.label }}
+      </v-btn>
     </v-toolbar-items>
   </v-toolbar>
 </template>
 
 <script lang="ts" setup>
-import { useRouter } from "vue-router";
-import { ref } from "vue";
-
-
-const theme = ref<"light" | "dark">("light");
+import { useRouter } from 'vue-router';
+import { useTheme } from 'vuetify';
+import { computed } from 'vue';
 
 
 const router = useRouter();
+const navItems = [
+  { path: '/employees', label: 'الموظفين' },
+  { path: '/companies', label: 'الشركات' },
+  { path: '/home', label: 'الصفحة الرئيسية' },
+];
+const navigateTo = (path: string) => router.push(path);
 
 
-const toHome = (): void => {
-  router.push("/");
-};
+const theme = useTheme();
+const isDark = computed(() => theme.global.name.value === 'myCustomDarkTheme');
 
-
-const toEmployees = (): void => {
-  router.push("/employees");
-};
-
-
-const toCompanies = (): void => {
-  router.push("/companies");
-};
-
-
-const onClick = (): void => {
-  theme.value = theme.value === "light" ? "dark" : "light";
-};
+function toggleTheme() {
+  theme.global.name.value = isDark.value ? 'myCustomLightTheme' : 'myCustomDarkTheme';
+}
 </script>
+
+<style>
+* {
+  font-family: 'Tajawal', sans-serif !important;
+}
+</style>

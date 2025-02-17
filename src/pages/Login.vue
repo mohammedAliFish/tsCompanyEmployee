@@ -64,7 +64,7 @@ const login = async () => {
   errorMessage.value = "";
   try {
     await authStore.login(username.value, password.value);
-    router.push("/"); 
+    router.push("/companies");
   } catch (error) {
     errorMessage.value = "Invalid username or password";
     console.error("Login error:", error);

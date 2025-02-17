@@ -105,7 +105,7 @@ export default defineComponent({
       loading.value = true;
       try {
         const response = await apiClient.get("/api/companies", {
-          params: { pageNumber, pageSize: paginationData.value.PageSize || 5 },
+          params: { pageNumber, pageSize: paginationData.value.PageSize || 1 },
         });
 
         companies.value = response.data;

@@ -22,7 +22,7 @@ export const useAuthStore = defineStore("auth", () => {
       const token = response.data.accessToken;
 
       setToken(token);
-      router.push("/");
+      router.push("/companies");
     } catch (error) {
       console.error("Login error:", error);
       throw error;
@@ -45,4 +45,3 @@ export const useAuthStore = defineStore("auth", () => {
 
   return { token, login, logout };
 });
- 
