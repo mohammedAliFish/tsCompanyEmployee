@@ -20,6 +20,7 @@
 import { useRouter } from 'vue-router';
 import { useTheme } from 'vuetify';
 import { computed } from 'vue';
+import { onMounted } from 'vue';
 
 
 const router = useRouter();
@@ -35,8 +36,16 @@ const theme = useTheme();
 const isDark = computed(() => theme.global.name.value === 'myCustomDarkTheme');
 
 function toggleTheme() {
-  theme.global.name.value = isDark.value ? 'myCustomLightTheme' : 'myCustomDarkTheme';
+  const newTheme = isDark.value ? 'myCustomLightTheme' : 'myCustomDarkTheme';
+  theme.global.name.value = newTheme;
+  localStorage.setItem('theme', newTheme);
 }
+onMounted(() => {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    theme.global.name.value = savedTheme;
+  }
+});
 </script>
 
 <style>

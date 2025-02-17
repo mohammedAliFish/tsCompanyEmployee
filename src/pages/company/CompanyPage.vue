@@ -13,7 +13,7 @@
       <h2>اداره الشركات</h2>
     </div>
 
-    <v-text-field v-model="searchQuery" label="ابحث عن الشركات" class="mx-4" clearable dir="rtl" style="text-align: right" @input="onSearch"/>
+    <v-text-field v-model="searchQuery" label="ابحث عن الشركات"  clearable dir="rtl" style="text-align: right" @input="onSearch"/>
 
     <v-data-table :items="filteredCompanies" item-value="companyGuid" :loading="loading">
       <template #[`item.actions`]="{ item }">
